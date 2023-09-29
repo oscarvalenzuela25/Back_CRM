@@ -166,4 +166,8 @@ exports.typeDefs = gql`
     deleteOrder(orderId: ID): Boolean
     #####
   }
+
+  type Subscription {
+    productCreated: Product
+  }
 `;

@@ -5,6 +5,9 @@ const Order = require('../models/Order');
 const { connectDB, disconnectDB } = require('../config/db');
 const bcrypt = require('bcryptjs');
 const { createToken } = require('../helpers/token');
+const { PubSub } = require('graphql-subscriptions');
+
+const pubsub = new PubSub();
 
 exports.resolvers = {
   Query: {
@@ -66,9 +69,7 @@ exports.resolvers = {
     getClientsBySeller: async (_, __, ctx) => {
       try {
         await connectDB();
-        console.log('Entramos');
         const user = ctx.user;
-        console.log(user);
         if (!user) throw new Error('Ingrese un token valido');
         const clients = await Client.find({ seller: user._id });
         await disconnectDB();
@@ -267,6 +268,7 @@ exports.resolvers = {
         const newProduct = new Product(input);
         await newProduct.save();
         await disconnectDB();
+        pubsub.publish('PRODUCT_CREATED', { productCreated: newProduct });
         return newProduct;
       } catch (error) {
         console.log(error.message);
@@ -429,6 +431,11 @@ exports.resolvers = {
         await disconnectDB();
         return error;
       }
+    },
+  },
+  Subscription: {
+    productCreated: {
+      subscribe: () => pubsub.asyncIterator('PRODUCT_CREATED', (payload) => payload),
     },
   },
 };
